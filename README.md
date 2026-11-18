@@ -59,7 +59,21 @@ npm run test:http    # 21/21 ✅ — واجهة HTTP كاملة ضد خادم ا
 
 ## 3) النشر على Vercel خطوة بخطوة
 
-> ملاحظة: لا يمكن نشر المشروع برمجيًا من هنا (لا يوجد توكن Vercel) — الخطوات أدناه تستغرق دقيقتين من لوحة التحكم.
+### 3.0 الإصلاح السريع بأمر واحد (يصلح خطأ NOT_FOUND تلقائيًا)
+
+إن ظهر خطأ `NOT_FOUND` (404) بعد النشر، فسببها شبه المؤكد: نشر الشجرة الجذرية للمستودع بدل مجلد المشروع. السكربت التالي يصلح كل شيء تلقائيًا — ينشئ مشروعي Vercel، يضبط Root Directory، يضخ متغيرات البيئة، ينشر الاثنين، ويتحقق منهما:
+
+```bash
+# على جهازك من جذر المستودع (بعد git pull):
+VERCEL_TOKEN=xxxx TURSO_AUTH_TOKEN=yyyy bash scripts/setup-vercel.sh
+```
+
+- `VERCEL_TOKEN`: من [vercel.com → Account Settings → Tokens](https://vercel.com/account/tokens) → Create Token
+- `TURSO_AUTH_TOKEN`: من [app.turso.io](https://app.turso.io) → قاعدة `sanad-mahersanad` → Tokens
+- إن كان لديك فريق (team) على Vercel أضف: `VERCEL_SCOPE=اسم-الفريق`
+- السكربت يطبق أيضًا Root Directory عبر واجهة برمجة Vercel، فتصبح نشرات Git المستقبلية تُبنى من المجلد الصحيح دون أي تدخل.
+
+> ملاحظة: لا يمكن نشر المشروع برمجيًا من بيئة البناء (لا يوجد توكن Vercel هنا) — لكن الأمر أعلاه يستغرق دقيقتين على جهازك، أو اتبع الخطوات اليدوية أدناه.
 
 ### 3.1 خدمة الدمج (`video-merger`)
 

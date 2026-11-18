@@ -2,7 +2,7 @@
 // ثم مهمة مختلطة (رابط + ملف مرفوع) ← حذف → 404 → JSON تالف → قائمة فارغة
 const fs = require("fs");
 const path = require("path");
-const { execFileSync } = require("child_process");
+const { execFileSync, spawn } = require("child_process");
 const { ffmpegPath } = require("../lib/merge");
 
 const BASE = process.env.BASE_URL || "http://127.0.0.1:4000";
@@ -10,6 +10,37 @@ const results = [];
 function check(name, cond, extra = "") {
   results.push({ name, ok: !!cond, extra });
   console.log(`${cond ? "✅" : "❌"} ${name}${extra ? " — " + extra : ""}`);
+}
+
+// ===== خادم ذاتي: npm run test:http يعمل من الصفر بلا خادم خارجي =====
+let serverChild = null;
+async function ensureServer() {
+  // إن كان خادمًا يعمل مسبقًا على BASE نستخدمه كما هو
+  try {
+    await fetch(`${BASE}/api/config`, { signal: AbortSignal.timeout(1500) });
+    return;
+  } catch {}
+  // إطلاق خادم التطوير (يقرأ .env تلقائيًا عبر lib/env.js)
+  serverChild = spawn(process.execPath, [path.join(__dirname, "dev-server.js")], {
+    stdio: "ignore",
+    env: process.env,
+  });
+  // انتظار أول استجابة HTTP مهما كان رمزها — الاستجابة تعني أن الخادم يعمل
+  const t0 = Date.now();
+  while (Date.now() - t0 < 15000) {
+    await new Promise((r) => setTimeout(r, 300));
+    try {
+      await fetch(`${BASE}/api/config`, { signal: AbortSignal.timeout(1000) });
+      return;
+    } catch {}
+    if (serverChild.exitCode !== null) {
+      throw new Error("انطفأ خادم التطوير فور تشغيله — جرّب npm run dev وحده لرؤية السبب (غالبًا المنفذ 4000 مشغول)");
+    }
+  }
+  throw new Error("خادم التطوير لم يجهز خلال 15 ثانية");
+}
+function stopServer() {
+  if (serverChild) { try { serverChild.kill(); } catch {} serverChild = null; }
 }
 
 async function jfetch(url, opts = {}) {
@@ -28,6 +59,7 @@ async function genClips(dir) {
 }
 
 async function main() {
+  await ensureServer();
   // تحقق أن الخدمة تعمل
   const cfg = await jfetch(`${BASE}/api/config`);
   check("GET /api/config يعمل", cfg.status === 200 && cfg.body.ok === true, JSON.stringify(cfg.body).slice(0, 80));
@@ -128,7 +160,8 @@ async function main() {
 
   const failed = results.filter(r => !r.ok);
   console.log(`\nالنتيجة: ${results.length - failed.length}/${results.length} نجحت`);
+  stopServer();
   process.exit(failed.length ? 1 : 0);
 }
 
-main().catch((e) => { console.error("فشل غير متوقع:", e); process.exit(1); });
+main().catch((e) => { console.error("فشل غير متوقع:", e); stopServer(); process.exit(1); });

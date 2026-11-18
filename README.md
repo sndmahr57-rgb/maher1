@@ -54,8 +54,10 @@ npm run build && npm start     # http://127.0.0.1:3000
 ```bash
 cd video-merger
 npm run test:unit    # 15/15 ✅ — دمج ffmpeg + تخزين Turso (sha256) + رفع أجزاء + حدود + حذف
-npm run test:http    # 21/21 ✅ — واجهة HTTP كاملة ضد خادم التطوير (يشمل Range 206)
+npm run test:http    # 21/21 ✅ — يُشغّل خادم التطوير ذاتيًا ويقرأ .env ثم يطفئه بعد الاختبار
 ```
+
+> قبل أول تشغيل: انسخ `.env.example` إلى `.env` وضع فيه متغيري Turso (الملف ممنوع رفعه).
 
 ## 3) النشر على Vercel خطوة بخطوة
 

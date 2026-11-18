@@ -49,8 +49,10 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith("/api/")) {
       const resolved = resolveApi(pathname);
       if (!resolved) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "نقطة النهاية غير موجودة" }));
+        // مطابقة سلوك Vercel: أي مسار /api/* غير معروف يذهب لـ fallback (404 عربي مفيد)
+        const fb = require(path.join(ROOT, "api", "fallback.js"));
+        req.query = { ...parsed.query };
+        return await fb(req, res);
       }
       // توحيد req.query مع معاملات الاستعلام + معاملات المسار الديناميكي
       req.query = { ...parsed.query, ...resolved.query };
